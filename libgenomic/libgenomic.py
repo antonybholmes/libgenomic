@@ -6,10 +6,7 @@ Created on Wed Mar 28 11:04:08 2018
 @author: antony
 """
 
-import sys
 import collections
-sys.path.append('/ifs/scratch/cancer/Lab_RDF/abh2138/scripts/python/lib/libdna/libdna')
-
 import libdna
 
 CHECK = 42
@@ -35,8 +32,11 @@ def overlap(chr1, start1, end1, chr2, start2, end2):
 
 
 class GenomicEntity(libdna.Loc):
-    def __init__(self, chr, start, end, level, strand, ann_map = {}):
+    def __init__(self, chr, start, end, level, strand, ann_map = None):
         super().__init__(chr, start, end)
+        
+        if ann_map is None:
+            ann_map = {}
         
         self.__level = level
         self.__strand = strand
@@ -72,6 +72,10 @@ class GenomicEntity(libdna.Loc):
         
     def set_id(self, name, value):
         self.set_annotation(name, value)
+        
+    def set_ids(self, ids):
+        for key, value in ids.items():
+            self.__ann_map[key] = value
     
     def annotation_names(self):
         return sorted(self._ann_map.keys())
@@ -81,6 +85,10 @@ class GenomicEntity(libdna.Loc):
             return self.__ann_map[name]
         else:
             return ''
+    
+    @property
+    def ids(self):
+        return self.__ann_map
     
     @property
     def annotations(self):
@@ -103,6 +111,10 @@ class GenomicEntity(libdna.Loc):
     
     def add_tag(self, tag):
         self.__tags.add(tag)
+        
+    def add_tags(self, tags):
+        for tag in tags:
+            self.__tags.add(tag)
     
     def _tags_str(self):
         return ';'.join(sorted(self.__tags))
