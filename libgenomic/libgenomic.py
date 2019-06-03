@@ -31,16 +31,13 @@ def overlap(chr1, start1, end1, chr2, start2, end2):
     return libdna.Loc(chr, start, end)
 
 
-class GenomicEntity(libdna.Loc):
-    def __init__(self, chr, start, end, level, strand, ann_map = None):
+class GenomicElement(libdna.Loc):
+    def __init__(self, chr, start, end, level, strand = '+'):
         super().__init__(chr, start, end)
-        
-        if ann_map is None:
-            ann_map = {}
         
         self.__level = level
         self.__strand = strand
-        self.__ann_map = ann_map
+        self.__property_map = {}
         self.__tags = set()
         self.__children = collections.defaultdict(list)
     
@@ -67,41 +64,34 @@ class GenomicEntity(libdna.Loc):
     def tag_count(self):
         return len(self.__tags)
     
-    def set_annotation(self, name, value):
-        self.__ann_map[name] = value
+    def set_property(self, name, value):
+        self.__property_map[name] = value
         
-    def set_id(self, name, value):
-        self.set_annotation(name, value)
-        
-    def set_ids(self, ids):
-        for key, value in ids.items():
-            self.__ann_map[key] = value
+    def set_properties(self, properties):
+        for key, value in properties.items():
+            self.__property_map[key] = value
     
-    def annotation_names(self):
-        return sorted(self._ann_map.keys())
+    def property_names(self):
+        return sorted(self.__property_map.keys())
     
-    def annotation(self, name):
-        if name in self.__ann_map:
-            return self.__ann_map[name]
+    def get_property(self, name):
+        if name in self.__property_map:
+            return self.__property_map[name]
         else:
             return ''
     
     @property
-    def ids(self):
-        return self.__ann_map
+    def properties(self):
+        return self.__property_map
     
-    @property
-    def annotations(self):
-        return self.__ann_map
-    
-    def annotation_count(self):
+    def property_count(self):
         return len(self.__ann_mapp)
     
-    def _ann_str(self):
+    def _prop_str(self):
         ret = []
         
-        for key in sorted(self.__ann_map):
-            ret.append('{}="{}"'.format(key, self.__ann_map[key]))
+        for key in sorted(self.__property_map):
+            ret.append('{}={}'.format(key, self.__property_map[key]))
             
         return ';'.join(ret)
     
@@ -119,16 +109,12 @@ class GenomicEntity(libdna.Loc):
     def _tags_str(self):
         return ';'.join(sorted(self.__tags))
     
-    @property
-    def gene_name(self):
-        return self.annotation(GENE_NAME)
-    
-    @property
-    def symbol(self):
-        return self.gene_name
-    
     def __str__(self):
-        return '{}\t{}\t{}\t{}\t{}'.format(super().__str__(), self.level, self.strand, self._ann_str(), self._tags_str())
+        return '{}\t{}\t{}\t{}\t{}'.format(self.level, super().__str__(), self.strand, self._prop_str(), self._tags_str())
+    
+    @property
+    def basic_json(self):
+        return {'level':self.level, 'loc':super().__str__(), 'strand':self.strand}
     
     @staticmethod
     def chr_map(entities):
@@ -138,7 +124,20 @@ class GenomicEntity(libdna.Loc):
             chr_map[e.chr].append(e)
             
         return chr_map
+    
 
+class GenomicEntity(GenomicElement):
+    def __init__(self, chr, start, end, level, strand):
+        super().__init__(chr, start, end, level, strand)
+    
+    @property
+    def gene_name(self):
+        return self.annotation(GENE_NAME)
+    
+    @property
+    def symbol(self):
+        return self.gene_name
+    
 
 class Exon(GenomicEntity):
     def __init__(self, chr, start, end, strand):
